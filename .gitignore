@@ -1,0 +1,5 @@
+DataSets/
+.vscode/
+__pycache__/
+*.txt
+.ipynb_checkpoints/
