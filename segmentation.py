@@ -2,6 +2,7 @@ import glob
 import cv2
 import numpy as np
 from utils import *
+import pandas as pd
 from argparse import ArgumentParser
 
 
@@ -336,6 +337,55 @@ def imgToDataSet(img_path, text_path, destination_path):
             index += 1
 
 
+def imagesToCsv(img_dir, text_dir, image_files, destination, limit=-1):
+    rows = []
+    column_names = ["feature" + str(i) for i in range(25*25)]
+    column_names.append("label")
+    count = 0
+    for image in image_files:
+        if limit > 0 and count == limit:
+            break
+        if count % 200 == 0:
+            print("currently at image: " + str(count))
+        img_path = img_dir + "/" + image
+        text_path = text_dir + "/" + image.split('.')[0] + ".txt"
+
+        img = cv2.imread(img_path)
+        img_words = imageToWords(img)
+        with open(text_path) as f:
+            text = f.readlines()[0]
+            text_words = text.split()
+            index = 0
+            for word in text_words:
+                if index >= len(img_words):
+                    break
+                chars = segmenteCharacters(img_words[index])
+                if len(chars) == len(word):
+                    chars.reverse()
+                    for i in range(len(word)):
+                        letter = 255*extractTemplate(chars[i])
+                        if letter.shape[0] < 25 and letter.shape[1] < 25:
+                            mask = np.zeros((25, 25))
+
+                            vertical_start = int((25 - letter.shape[0]) / 2)
+                            vertical_end = vertical_start + letter.shape[0]
+                            horizontal_start = int((25 - letter.shape[1]) / 2)
+                            horizontal_end = horizontal_start + letter.shape[1]
+
+                            mask[vertical_start:vertical_end,
+                                 horizontal_start:horizontal_end] = letter
+                            mask = mask.reshape(1, mask.shape[0]*mask.shape[1])
+                            row = [mask[:, i][0] for i in range(mask.shape[1])]
+                            row.append(word[i])
+                            rows.append(row)
+                            LETTER_COUNTS[word[i]] += 1
+                index += 1
+        count += 1
+
+    df = pd.DataFrame(data=rows, columns=column_names)
+    df.to_csv(destination + "/dataset.csv", index=False)
+
+
 if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument(
@@ -343,12 +393,18 @@ if __name__ == "__main__":
     parser.add_argument(
         '-t', '--text_dir', default="./DataSets/text", type=str, help='Text Folder Path')
     parser.add_argument(
+        '-f', '--file_type', default="img", type=str, help='desired output file type img or csv')
+    parser.add_argument(
+        '-l', '--limit', default=-1, type=int, help='limit for number of images used')
+    parser.add_argument(
         '-d', '--destination', default="./dataSet", type=str, help='DataSet Detination Folder Path')
 
     args = parser.parse_args()
     destination = args.destination
     img_dir = args.img_dir
     text_dir = args.text_dir
+    file_type = args.file_type
+    limit = args.limit
     images = glob.glob(img_dir + "/*")
     texts = glob.glob(text_dir + "/*")
 
@@ -362,7 +418,18 @@ if __name__ == "__main__":
         if filename in text_files:
             image_files.append(image.split('/')[-1])
 
-    for image in image_files:
-        img_path = img_dir + "/" + image
-        text_path = text_dir + "/" + image.split('.')[0] + ".txt"
-        imgToDataSet(img_path, text_path, destination)
+    count = 0
+    if file_type == "img":
+        for image in image_files:
+            if limit > 0 and count == limit:
+                break
+            if count % 200 == 0:
+                print("currently at image: " + str(count))
+            img_path = img_dir + "/" + image
+            text_path = text_dir + "/" + image.split('.')[0] + ".txt"
+            imgToDataSet(img_path, text_path, destination)
+            count += 1
+    elif file_type == "csv":
+        imagesToCsv(img_dir, text_dir, image_files, destination, limit=limit)
+    else:
+        print("[ERROR]: invalid file type")
