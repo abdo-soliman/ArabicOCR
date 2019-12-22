@@ -1,6 +1,7 @@
-from utils import *
+import glob
 import cv2
 import numpy as np
+from utils import *
 from argparse import ArgumentParser
 
 
@@ -338,13 +339,30 @@ def imgToDataSet(img_path, text_path, destination_path):
 if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument(
-        '-i', '--image', default="./DataSets/test.png", type=str, help='Image File Path')
+        '-i', '--img_dir', default="./DataSets/scanned", type=str, help='Image Folder Path')
     parser.add_argument(
-        '-t', '--text', default="./DataSets/test.txt", type=str, help='Text File Path')
+        '-t', '--text_dir', default="./DataSets/text", type=str, help='Text Folder Path')
     parser.add_argument(
-        '-d', '--destination', default="./DataSets/dataSet", type=str, help='DataSet Detination Folder Path')
+        '-d', '--destination', default="./dataSet", type=str, help='DataSet Detination Folder Path')
 
     args = parser.parse_args()
-    img = cv2.imread(args.image)
-    lines = breakLines(img)
-    imgToDataSet(args.image, args.text, args.destination)
+    destination = args.destination
+    img_dir = args.img_dir
+    text_dir = args.text_dir
+    images = glob.glob(img_dir + "/*")
+    texts = glob.glob(text_dir + "/*")
+
+    text_files = []
+    for text in texts:
+        text_files.append(text.split('/')[-1].split('.')[0])
+
+    image_files = []
+    for image in images:
+        filename = image.split('/')[-1].split('.')[0]
+        if filename in text_files:
+            image_files.append(image.split('/')[-1])
+
+    for image in image_files:
+        img_path = img_dir + "/" + image
+        text_path = text_dir + "/" + image.split('.')[0] + ".txt"
+        imgToDataSet(img_path, text_path, destination)
