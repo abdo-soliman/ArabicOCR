@@ -1,12 +1,49 @@
 from utils import *
 import cv2
 import numpy as np
+from argparse import ArgumentParser
 
 
 Y_START = (cv2.imread("./templates/y_template.png", 0) / 255).astype(np.uint8)
 SEN_START = (cv2.imread("./templates/sen_start_template.png",
                         0) / 255).astype(np.uint8)
 H_START = (cv2.imread("./templates/7_template.png", 0) / 255).astype(np.uint8)
+LETTER_COUNTS = {
+    "ا": 0,
+    "ب": 0,
+    "ت": 0,
+    "ث": 0,
+    "ج": 0,
+    "ح": 0,
+    "خ": 0,
+    "د": 0,
+    "ذ": 0,
+    "ر": 0,
+    "ز": 0,
+    "ش": 0,
+    "س": 0,
+    "ص": 0,
+    "ض": 0,
+    "ط": 0,
+    "ظ": 0,
+    "ع": 0,
+    "غ": 0,
+    "ف": 0,
+    "ق": 0,
+    "ك": 0,
+    "ل": 0,
+    "م": 0,
+    "ن": 0,
+    "ه": 0,
+    "و": 0,
+    "ي": 0,
+    "ﻻ": 0,
+    "ى": 0,
+    "ئ": 0,
+    "ء": 0,
+    "ؤ": 0,
+    "ة": 0
+}
 
 
 def breakLines(img):
@@ -255,9 +292,59 @@ def segmenteCharacters(word, to_skeleton=True, debug=False):
         return characters
 
 
-if __name__ == "__main__":
-    img = cv2.imread("./DataSets/test.png")
+def imageToWords(img):
+    words = []
     lines = breakLines(img)
-    word = breakWords(lines[1])[0]
-    show_images([toSkeleton(word), segmenteCharacters(
-        word.copy())], ["skeleton", "segmentation"])
+    for line in lines:
+        line_words = breakWords(line)
+        line_words.reverse()
+        for word in line_words:
+            words.append(word)
+
+    return words
+
+
+def imgToDataSet(img_path, text_path, destination_path):
+    img = cv2.imread(img_path)
+    img_words = imageToWords(img)
+    with open(text_path) as f:
+        text = f.readlines()[0]
+        text_words = text.split()
+        index = 0
+        for word in text_words:
+            if index >= len(img_words):
+                break
+            chars = segmenteCharacters(img_words[index])
+            if len(chars) == len(word):
+                chars.reverse()
+                for i in range(len(word)):
+                    letter = 255*extractTemplate(chars[i])
+                    if letter.shape[0] < 25 and letter.shape[1] < 25:
+                        mask = np.zeros((25, 25))
+
+                        vertical_start = int((25 - letter.shape[0]) / 2)
+                        vertical_end = vertical_start + letter.shape[0]
+                        horizontal_start = int((25 - letter.shape[1]) / 2)
+                        horizontal_end = horizontal_start + letter.shape[1]
+
+                        mask[vertical_start:vertical_end,
+                             horizontal_start:horizontal_end] = letter
+                        cv2.imwrite(destination_path + "/" + word[i] + "/" + word[i] + "_" + str(
+                            LETTER_COUNTS[word[i]]) + ".png", mask)
+                        LETTER_COUNTS[word[i]] += 1
+            index += 1
+
+
+if __name__ == "__main__":
+    parser = ArgumentParser()
+    parser.add_argument(
+        '-i', '--image', default="./DataSets/test.png", type=str, help='Image File Path')
+    parser.add_argument(
+        '-t', '--text', default="./DataSets/test.txt", type=str, help='Text File Path')
+    parser.add_argument(
+        '-d', '--destination', default="./DataSets/dataSet", type=str, help='DataSet Detination Folder Path')
+
+    args = parser.parse_args()
+    img = cv2.imread(args.image)
+    lines = breakLines(img)
+    imgToDataSet(args.image, args.text, args.destination)
