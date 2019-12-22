@@ -47,7 +47,7 @@ while [ "$1" != "" ]; do
     shift
 done
 
-if [ $noRange = "1" ]; then
+if [ "$noRange" = "1" ]; then
     rangeStart=$number
     rangeEnd=$number
 fi

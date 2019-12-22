@@ -12,6 +12,8 @@ parameters:
         -i      --img-dir       image directory to read image files from    DEFAULT ./DataSets/scanned
         -t      --text-dir      text directory to read text files from      DEFAULT ./DataSets/text
         -o      --output-dir    output direcory to write dataset in         DEFAULT ./dataSet
+        -f      --file-type     output file type csv or img                 DEFAULT csv
+        -l      --limit         number of images to be used -1 for all      DEFAULT -1
         -h      --help          print help"
 }
 
@@ -55,7 +57,7 @@ if [ -d $imgDir ]; then
     if [ -d $textDir ]; then
         echo "${YELLOW}[INFO]: text directory found -> check on output directory${RESET}"
         if [ -d $outputDir ]; then
-            if [ "$file" == "img" ]; then
+            if [ "$fileType" == "img" ]; then
                 echo "${YELLOW}[INFO]: output directory found -> check on letters' directories${RESET}"
                 for val in ${charArray[@]}; do
                     if [ ! -d "$outputDir/$val" ]; then
@@ -67,7 +69,7 @@ if [ -d $imgDir ]; then
                 echo "${YELLOW}[INFO]: output directory found${RESET}"
             fi
         else
-            if [ "$file" == "img" ]; then
+            if [ "$fileType" == "img" ]; then
                 echo "${YELLOW}[INFO]: output directory not found -> create output directory and letters' sub directories${RESET}"
                 mkdir -p $outputDir
                 for val in ${charArray[@]}; do

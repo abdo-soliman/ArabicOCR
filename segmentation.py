@@ -363,7 +363,7 @@ def imagesToCsv(img_dir, text_dir, image_files, destination, limit=-1):
                 if len(chars) == len(word):
                     chars.reverse()
                     for i in range(len(word)):
-                        letter = 255*extractTemplate(chars[i])
+                        letter = extractTemplate(chars[i])
                         if letter.shape[0] < 25 and letter.shape[1] < 25:
                             mask = np.zeros((25, 25))
 
