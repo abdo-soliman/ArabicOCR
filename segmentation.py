@@ -194,6 +194,98 @@ def isFakeAlef(word, splitter):
     return True
 
 
+def removeDots(word):
+    skeleton = toSkeleton(word)
+    skeleton = skeleton.astype(np.uint8)
+
+    # find contours
+    ctrs, hier = cv2.findContours(skeleton.copy(), cv2.RETR_EXTERNAL,
+                                  cv2.CHAIN_APPROX_SIMPLE)
+
+    # #sort contours
+    sorted_ctrs = sorted(ctrs, key=lambda ctr: cv2.boundingRect(ctr)[0])
+
+    dots = []
+    for i, ctr in enumerate(sorted_ctrs):
+        x, y, w, h = cv2.boundingRect(ctr)
+        if w < 5 and h < 5:
+            skeleton[y:y+h, x:x+w] = 0
+            dots.append((x, w))
+
+    return [skeleton, dots]
+
+
+def getHeight(skeleton, index):
+    indecies = np.where(skeleton[:, index] == 1)[0]
+    if len(indecies) > 0:
+        return abs(indecies.min() - indecies.max())
+
+    return 0
+
+
+def matchSen(word):
+    skeleton, dots = removeDots(word)
+
+    uppers = []
+    for i in range(skeleton.shape[1]):
+        column = skeleton[:, i]
+        if np.sum(column) != 0:
+            uppers.append(skeleton.shape[0] -
+                          np.where(skeleton[:, i] == 1)[0].min())
+        else:
+            uppers.append(skeleton.shape[0])
+
+    diff = np.diff(uppers)
+    peaks = []
+    for i in range(len(diff)-11):
+        is_peak = False
+        possible_peaks = []
+        for j in range(11):
+            if diff[i+j-1] > 0:
+                is_peak = True
+            if diff[i+j-1] < 0 and is_peak and getHeight(skeleton, i+j-1) <= 4:
+                is_peak = False
+                possible_peaks.append(i+j-1)
+
+        valid_window = True
+        if len(possible_peaks) > 2:
+            for i in range(possible_peaks[0], possible_peaks[-1]):
+                if np.sum(skeleton[:, i]) <= 0:
+                    valid_window = False
+                    break
+
+            if valid_window:
+                for peak in possible_peaks:
+                    peaks.append(peak)
+
+    peaks = list(set(peaks))
+    mod_peaks = []
+    if len(peaks) % 3 != 0:
+        for peak in peaks:
+            valid = True
+            for dot in dots:
+                if peak >= dot[0] and peak <= dot[0]+dot[1]:
+                    valid = False
+
+            if valid:
+                mod_peaks.append(peak)
+    else:
+        mod_peaks = peaks
+
+    mod_peaks.sort()
+    sens = []
+    for i in range(0, len(mod_peaks)-2, 3):
+        if i+3 <= len(mod_peaks):
+            sens.append(mod_peaks[i:i+3])
+
+    splitters = []
+    for sen in sens:
+        splitters.append(sen[0]-2)
+        splitters.append(sen[-1]+2)
+
+    return splitters
+
+
 def matchFirstCharacter(word):
     skeleton = toSkeleton(word)
     first_sen_sep = templateMatch(skeleton, SEN_START, threshold=0.55)
@@ -234,9 +326,19 @@ def segmenteCharacters(word, to_skeleton=True, debug=False):
     empty_space_splitters = addEmptySpaceSep(full_hist) + first_sep
     splitters = np.append(np.array(splitters), empty_space_splitters)
 
+    # add sen and shen splitters
+    sen_splitters = np.array(matchSen(word)) + first_sep
+    splitters = np.append(splitters, sen_splitters)
+
     # add splitter at point if you were above base line and return back to baseline
-    base_line_splitters = [(i + first_sep) for i in range(1, len(diff))
-                           if (diff[i-1] != 0 and diff[i] == 0 and hist[i] == 0)]
+    base_line_splitters = []
+    for i in range(1, len(diff)):
+        if diff[i-1] != 0 and diff[i] == 0 and hist[i] == 0:
+            for j in range(0, len(sen_splitters), 2):
+                if not ((i + first_sep) >= sen_splitters[j] and (i + first_sep) <= sen_splitters[j+1]):
+                    if abs((i + first_sep) - sen_splitters[j]) > 3 and abs((i + first_sep) - sen_splitters[j+1]) > 3:
+                        base_line_splitters.append(i + first_sep)
+
     splitters = np.append(splitters, base_line_splitters).astype(np.uint8)
     splitters.sort()    # sort splitters in ascending order
 
@@ -317,8 +419,28 @@ def imgToDataSet(img_path, text_path, destination_path):
             if index >= len(img_words):
                 break
             chars = segmenteCharacters(img_words[index])
+            chars.reverse()
+            # check for ض if it exists then it may cause extra fake د
+            if len(chars) - len(word) >= 1 and "ض" in word:
+                mod_chars = []
+                for i in range(len(word)):
+                    if word[i] != "ض":
+                        mod_chars.append(chars[i])
+                        continue
+                    mod_chars.append(np.concatenate((chars[i], chars[i+1]), axis=1))
+                chars = mod_chars
+
+            # check for ص if it exists then it may cause extra fake د
+            if len(chars) - len(word) >= 1 and "ص" in word:
+                mod_chars = []
+                for i in range(len(word)):
+                    if word[i] != "ص":
+                        mod_chars.append(chars[i])
+                        continue
+                    mod_chars.append(np.concatenate((chars[i], chars[i+1]), axis=1))
+                chars = mod_chars
+
             if len(chars) == len(word):
-                chars.reverse()
                 for i in range(len(word)):
                     letter = 255*extractTemplate(chars[i])
                     if letter.shape[0] < 25 and letter.shape[1] < 25:
