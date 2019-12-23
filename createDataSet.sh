@@ -19,12 +19,12 @@ parameters:
 
 imgDir="./DataSets/scanned"
 textDir="./DataSets/text"
-outputDir="./dataSet"
+outputDir="./DataSets/dataSet"
 limit=-1
 fileType="csv"
 
 # Declare an array of string with type
-declare -a charArray=("ا" "ب" "ت" "ث" "ج" "ح" "خ" "د" "ذ" "ر" "ز" "ش" "س" "ص" "ض" "ط" "ظ" "ع" "غ" "ف" "ق" "ك" "ل" "م" "ن" "ه" "و" "ي" "ﻻ" "ى" "ئ" "ء" "ؤ" "ة")
+declare -a charArray=("ا" "ب" "ت" "ث" "ج" "ح" "خ" "د" "ذ" "ر" "ز" "ش" "س" "ص" "ض" "ط" "ظ" "ع" "غ" "ف" "ق" "ك" "ل" "م" "ن" "ه" "و" "ي" "ﻻ")
 
 while [ "$1" != "" ]; do
     case $1 in

@@ -182,13 +182,13 @@ def isFakeAlef(word, splitter):
             break
     sub_word = word[:, start:splitter]
 
-    if sub_word.shape[1] > 3:
+    if sub_word.shape[1] > 4:
         return False
     for i in range(sub_word.shape[1]):
         column = sub_word[:, i]
         indecies = np.where(column > 0)[0]
 
-        if len(indecies) > 1 and (abs(indecies[-1] - indecies[0]) > 3):
+        if len(indecies) > 1 and (abs(indecies[-1] - indecies[0]) > 4):
             return False
 
     return True
@@ -311,13 +311,14 @@ def segmenteCharacters(word, to_skeleton=True, debug=False):
 
     first_sep = matchFirstCharacter(word)
     if first_sep >= word.shape[1]:
-        return [full_skeleton]
+        return [full_skeleton] if not debug else full_skeleton
 
     if first_sep != 0:
         splitters = np.append(splitters, first_sep)
         word = word[:, first_sep:]
         skeleton = toSkeleton(word)
 
+    skeleton, dots = removeDots(word)
     full_hist = getHist(skeleton)
     hist = getHist(skeleton[0:base_line-1, :])
     diff = np.diff(hist)
@@ -326,35 +327,43 @@ def segmenteCharacters(word, to_skeleton=True, debug=False):
     empty_space_splitters = addEmptySpaceSep(full_hist) + first_sep
     splitters = np.append(np.array(splitters), empty_space_splitters)
 
-    # add sen and shen splitters
-    sen_splitters = np.array(matchSen(word)) + first_sep
-    splitters = np.append(splitters, sen_splitters)
-
     # add splitter at point if you were above base line and return back to baseline
-    base_line_splitters = []
-    for i in range(1, len(diff)):
-        if diff[i-1] != 0 and diff[i] == 0 and hist[i] == 0:
-            for j in range(0, len(sen_splitters), 2):
-                if not ((i + first_sep) >= sen_splitters[j] and (i + first_sep) <= sen_splitters[j+1]):
-                    if abs((i + first_sep) - sen_splitters[j]) > 3 and abs((i + first_sep) - sen_splitters[j+1]) > 3:
-                        base_line_splitters.append(i + first_sep)
+    base_line_splitters = [(i + first_sep) for i in range(1, len(diff))
+                           if (diff[i-1] != 0 and diff[i] == 0 and hist[i] == 0)]
+    # add sen and shen splitters
+    sens = matchSen(word)
+    if len(sens) >= 2:
+        sen_splitters = np.array(sens) + first_sep
+        splitters = np.append(splitters, sen_splitters)
+
+        base_line_splitters = []
+        for i in range(1, len(diff)):
+            if diff[i-1] != 0 and diff[i] == 0 and hist[i] == 0:
+                for j in range(0, len(sen_splitters), 2):
+                    if not ((i + first_sep) >= sen_splitters[j] and (i + first_sep) <= sen_splitters[j+1]):
+                        if abs((i + first_sep) - sen_splitters[j]) > 3 and abs((i + first_sep) - sen_splitters[j+1]) > 3:
+                            base_line_splitters.append(i + first_sep)
 
     splitters = np.append(splitters, base_line_splitters).astype(np.uint8)
     splitters.sort()    # sort splitters in ascending order
-
+    splitters = np.unique(splitters)    # remove duplicates
     if len(splitters) == 0:
-        return [full_skeleton]
+        return [full_skeleton] if not debug else full_skeleton
 
     start = 2 if len(
         splitters) > 1 and splitters[1] - splitters[0] <= 3 and splitters[1] in empty_space_splitters else 1
-    mod_splitters = np.array(
-        [splitters[1] if start == 2 else splitters[0]]).astype(np.uint8)
-    real_splitters = [splitters[i] for i in range(
-        start, len(splitters)) if splitters[i] - splitters[i-1] > 3]
-    mod_splitters = np.append(mod_splitters, real_splitters).astype(np.uint8)
+    mod_splitters = [splitters[1] if start == 2 else splitters[0]]
+    for i in range(start, len(splitters)):
+        if splitters[i] in empty_space_splitters:
+            mod_splitters.append(splitters[i])
+        else:
+            if splitters[i] - splitters[i-1] > 3:
+                if not (i < len(splitters)-1 and splitters[i+1] in empty_space_splitters and splitters[i+1]-splitters[i] <= 2):
+                    mod_splitters.append(splitters[i])
+    mod_splitters = np.array(mod_splitters).astype(np.uint8)
 
     if len(mod_splitters) == 0:
-        return [full_skeleton]
+        return [full_skeleton] if not debug else full_skeleton
 
     # remove separators with no characters between them
     non_character_filtered = []
@@ -367,7 +376,7 @@ def segmenteCharacters(word, to_skeleton=True, debug=False):
         non_character_filtered.append(mod_splitters[-1])
 
     if len(non_character_filtered) == 0:
-        return [full_skeleton]
+        return [full_skeleton] if not debug else full_skeleton
 
     # remove fake alef at the beginning
     start = 1 if isFakeAlef(skeleton, non_character_filtered[0]) else 0
@@ -375,7 +384,7 @@ def segmenteCharacters(word, to_skeleton=True, debug=False):
         non_character_filtered[start:]).astype(np.uint8)
 
     if len(fake_alef_splitter_filtered) == 0:
-        return [full_skeleton]
+        return [full_skeleton] if not debug else full_skeleton
 
     if debug:
         bgr_skeleton = cv2.cvtColor(
@@ -454,7 +463,8 @@ def imgToDataSet(img_path, text_path, destination_path):
                     if word[i] != "ض":
                         mod_chars.append(chars[i])
                         continue
-                    mod_chars.append(np.concatenate((chars[i], chars[i+1]), axis=1))
+                    mod_chars.append(np.concatenate(
+                        (chars[i], chars[i+1]), axis=1))
                 chars = mod_chars
 
             # check for ص if it exists then it may cause extra fake د
@@ -464,7 +474,8 @@ def imgToDataSet(img_path, text_path, destination_path):
                     if word[i] != "ص":
                         mod_chars.append(chars[i])
                         continue
-                    mod_chars.append(np.concatenate((chars[i], chars[i+1]), axis=1))
+                    mod_chars.append(np.concatenate(
+                        (chars[i], chars[i+1]), axis=1))
                 chars = mod_chars
 
             word = fixLamAlef(word)
