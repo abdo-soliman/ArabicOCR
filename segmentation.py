@@ -408,6 +408,33 @@ def imageToWords(img):
     return words
 
 
+def fixLamAlef(word):
+    if len(word) < 2:
+        return word
+    elif len(word) == 2:
+        if word[0] == "ل" and word[1] == "ا":
+            return "ﻻ"
+        else:
+            return word
+    else:
+        mod_word = ""
+        count = False
+        for i in range(len(word)-1):
+            if count:
+                count = False
+                continue
+            if word[i] == "ل" and word[i+1] == "ا":
+                count = True
+                mod_word += "ﻻ"
+            else:
+                mod_word += word[i]
+
+        if not (word[-2] == "ل" and word[-1] == "ا"):
+            mod_word += word[-1]
+
+        return mod_word
+
+
 def imgToDataSet(img_path, text_path, destination_path):
     img = cv2.imread(img_path)
     img_words = imageToWords(img)
@@ -440,6 +467,7 @@ def imgToDataSet(img_path, text_path, destination_path):
                     mod_chars.append(np.concatenate((chars[i], chars[i+1]), axis=1))
                 chars = mod_chars
 
+            word = fixLamAlef(word)
             if len(chars) == len(word):
                 for i in range(len(word)):
                     letter = 255*extractTemplate(chars[i])
