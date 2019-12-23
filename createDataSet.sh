@@ -82,7 +82,7 @@ if [ -d $imgDir ]; then
         fi
 
         echo "${YELLOW}[INFO]: generating dataset...${RESET}"
-        python segmentation.py -i $imgDir -t $textDir -d $outputDir -f $fileType -l $limit
+        python3 segmentation.py -i $imgDir -t $textDir -d $outputDir -f $fileType -l $limit
         echo "${GREEN}[SUCCESS]: dataset generated${RESET}"
     else
         echo "${RED}[ERROR]: text directory not found${RESET}"

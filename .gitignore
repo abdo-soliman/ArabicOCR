@@ -3,3 +3,5 @@ DataSets/
 __pycache__/
 *.txt
 .ipynb_checkpoints/
+DataSet/
+ara.traineddata
