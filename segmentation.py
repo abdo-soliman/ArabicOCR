@@ -410,7 +410,7 @@ def segmenteCharacters(word, to_skeleton=True, debug=False):
 def charToFeatureVector(char):
     char = extractTemplate(char)
     mask = np.zeros((25, 25))
-
+    
     if char.shape[0] > 25:
         char = char[:25, :]
     elif char.shape[1] > 25:
@@ -448,12 +448,11 @@ def imageToWords(img):
 
 def imageToChars(img):
     chars = []
-    lines = breakLines(img)
-    for line in lines:
-        line_words = breakWords(line)
-        line_words.reverse()
-        for word in line_words:
-            chars.append(segmenteCharacters(word).reverse())
+    words = imageToWords(img)
+    for word in words:
+        temp = segmenteCharacters(word)
+        temp.reverse()
+        chars.append(temp)
 
     return chars
 

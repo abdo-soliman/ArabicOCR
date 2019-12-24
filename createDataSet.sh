@@ -52,11 +52,11 @@ while [ "$1" != "" ]; do
     shift
 done
 
-if [ -d $imgDir ]; then
+if [ -d "$imgDir" ]; then
     echo "${YELLOW}[INFO]: image directory found -> check on check text directory${RESET}"
-    if [ -d $textDir ]; then
+    if [ -d "$textDir" ]; then
         echo "${YELLOW}[INFO]: text directory found -> check on output directory${RESET}"
-        if [ -d $outputDir ]; then
+        if [ -d "$outputDir" ]; then
             if [ "$fileType" == "img" ]; then
                 echo "${YELLOW}[INFO]: output directory found -> check on letters' directories${RESET}"
                 for val in ${charArray[@]}; do
@@ -82,7 +82,7 @@ if [ -d $imgDir ]; then
         fi
 
         echo "${YELLOW}[INFO]: generating dataset...${RESET}"
-        python3 segmentation.py -i $imgDir -t $textDir -d $outputDir -f $fileType -l $limit
+        python segmentation.py -i $imgDir -t $textDir -d $outputDir -f $fileType -l $limit
         echo "${GREEN}[SUCCESS]: dataset generated${RESET}"
     else
         echo "${RED}[ERROR]: text directory not found${RESET}"
