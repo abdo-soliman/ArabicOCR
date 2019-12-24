@@ -408,7 +408,14 @@ def segmenteCharacters(word, to_skeleton=True, debug=False):
 
 
 def charToFeatureVector(char):
+    char = extractTemplate(char)
     mask = np.zeros((25, 25))
+
+    if char.shape[0] > 25:
+        char = char[:25, :]
+    elif char.shape[1] > 25:
+        char = char[:, :25]
+
     vertical_start = int((25 - char.shape[0]) / 2)
     vertical_end = vertical_start + char.shape[0]
     horizontal_start = int((25 - char.shape[1]) / 2)
