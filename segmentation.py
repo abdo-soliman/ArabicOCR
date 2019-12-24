@@ -464,7 +464,7 @@ def imgToDataSet(img_path, text_path, destination_path):
                         mod_chars.append(chars[i])
                         continue
                     mod_chars.append(np.concatenate(
-                        (chars[i], chars[i+1]), axis=1))
+                        (chars[i+1], chars[i]), axis=1))
                 chars = mod_chars
 
             # check for ص if it exists then it may cause extra fake د
@@ -475,7 +475,7 @@ def imgToDataSet(img_path, text_path, destination_path):
                         mod_chars.append(chars[i])
                         continue
                     mod_chars.append(np.concatenate(
-                        (chars[i], chars[i+1]), axis=1))
+                        (chars[i+1], chars[i]), axis=1))
                 chars = mod_chars
 
             word = fixLamAlef(word)
