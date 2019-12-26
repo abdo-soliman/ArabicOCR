@@ -29,3 +29,15 @@ the following:
 The limit flag is optional and it's default value is -1  which indicates all files.
 
 **note**: Script will automatically generate output directory and letters sub directories if it doesn't exist so doesn't bother creating it. You can default parameter values and explation for them by using -h or --help flag.
+
+## Run
+To run you simply run main.py and pass the images directory, output directory and classifier type:
+the following:
+```shell
+python main.py -i /path/to/images -t /path/to/write/output/text_files -c classifier_type
+```
+
+To see default values and parameters explanation use the following command:
+```shell
+python main.py --help
+```

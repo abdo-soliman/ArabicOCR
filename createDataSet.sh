@@ -1,12 +1,11 @@
 #!/bin/bash
 
-RED=`tput setaf 1`
-GREEN=`tput setaf 2`
-YELLOW=`tput setaf 3`
-RESET=`tput sgr0`
+RED=$(tput setaf 1)
+GREEN=$(tput setaf 2)
+YELLOW=$(tput setaf 3)
+RESET=$(tput sgr0)
 
-usage()
-{
+usage() {
     echo "arabic ocr character dataset generator
 parameters:
         -i      --img-dir       image directory to read image files from    DEFAULT ./DataSets/scanned
@@ -28,26 +27,34 @@ declare -a charArray=("ا" "ب" "ت" "ث" "ج" "ح" "خ" "د" "ذ" "ر" "ز" "ش
 
 while [ "$1" != "" ]; do
     case $1 in
-        -i | --img-dir )        shift
-                                imgDir=$1
-                                ;;
-        -t | --text-dir )       shift
-                                textDir=$1
-                                ;;
-        -o | --output-dir )     shift
-                                outputDir=$1
-                                ;;
-        -f | --file-type )      shift
-                                fileType=$1
-                                ;;
-        -l | --limit )          shift
-                                limit=$1
-                                ;;
-        -h | --help )           usage
-                                exit
-                                ;;
-        * )                     usage
-                                exit 1
+    -i | --img-dir)
+        shift
+        imgDir=$1
+        ;;
+    -t | --text-dir)
+        shift
+        textDir=$1
+        ;;
+    -o | --output-dir)
+        shift
+        outputDir=$1
+        ;;
+    -f | --file-type)
+        shift
+        fileType=$1
+        ;;
+    -l | --limit)
+        shift
+        limit=$1
+        ;;
+    -h | --help)
+        usage
+        exit
+        ;;
+    *)
+        usage
+        exit 1
+        ;;
     esac
     shift
 done
